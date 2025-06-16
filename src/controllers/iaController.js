@@ -50,186 +50,89 @@ const callGeminiAPI = async (conversationHistory) => {
   }
 };
 
-// Fonction améliorée pour détecter la langue du message
-const detectLanguage = (text) => {
-  // Mots clés français (élargi et amélioré)
-  const frenchKeywords = [
-    'bonjour', 'bonsoir', 'salut', 'coucou', 'bonne', 'merci', 'comment', 'pourquoi', 
-    'que', 'qui', 'où', 'quand', 'combien', 'quel', 'quelle', 'je', 'tu', 'il', 'elle', 
-    'nous', 'vous', 'ils', 'elles', 'un', 'une', 'le', 'la', 'les', 'de', 'du', 'des', 
-    'à', 'au', 'aux', 'pour', 'avec', 'sans', 'sur', 'sous', 'dans', 'par', 'ça', 
-    'oui', 'non', 'français', 'francais', 'parle', 'parler', 'aide', 'aider', 
-    'calcul', 'calculer', 'salaire', 'paie', 'benin', 'bénin', 'togo', 'puis'
-  ];
-  
-  // Mots clés anglais
-  const englishKeywords = [
-    'hello', 'hi', 'good', 'thank', 'thanks', 'how', 'why', 'what', 'who', 'where', 
-    'when', 'which', 'i', 'you', 'he', 'she', 'we', 'they', 'a', 'an', 'the', 'of', 
-    'to', 'for', 'with', 'without', 'on', 'in', 'by', 'yes', 'no', 'english', 
-    'speak', 'help', 'calculate', 'salary', 'payroll', 'benin', 'togo', 'can'
-  ];
-  
-  // Mots clés espagnols
-  const spanishKeywords = [
-    'hola', 'buenas', 'gracias', 'cómo', 'por qué', 'qué', 'quién', 'dónde', 'cuándo', 
-    'cuánto', 'yo', 'tú', 'él', 'ella', 'nosotros', 'vosotros', 'ellos', 'ellas', 
-    'un', 'una', 'el', 'la', 'los', 'las', 'de', 'del', 'para', 'con', 'sin', 'en', 
-    'por', 'sí', 'no', 'español', 'habla', 'hablar', 'ayuda', 'ayudar', 'calcular', 
-    'salario', 'nómina', 'benín', 'togo', 'puede'
-  ];
+// Prompt système intelligent qui laisse l'IA décider
+const getSmartSystemPrompt = () => {
+  return `Tu es un assistant virtuel expert en simulation de paie pour les pays d'Afrique de l'Ouest, particulièrement le Bénin et le Togo.
 
-  const textLower = text.toLowerCase();
-  
-  let frenchScore = 0;
-  let englishScore = 0;
-  let spanishScore = 0;
+## RÔLE ET COMPÉTENCES :
+- Expert en calculs de paie (salaire brut vers net)
+- Connaissance des règles fiscales et sociales de la région
+- Assistance sur l'utilisation des plateformes de simulation
+- Conseils sur les cotisations et charges sociales
 
-  // Comptage avec pondération pour les mots plus spécifiques
-  frenchKeywords.forEach(keyword => {
-    if (textLower.includes(keyword)) {
-      // Mots très spécifiques au français
-      if (['bonsoir', 'bonjour', 'français', 'francais', 'benin', 'bénin'].includes(keyword)) {
-        frenchScore += 3;
-      } else {
-        frenchScore += 1;
-      }
-    }
-  });
+## INTELLIGENCE CONTEXTUELLE :
+- Détecte automatiquement la langue de l'utilisateur (français, anglais, espagnol)
+- Réponds TOUJOURS dans la même langue que l'utilisateur
+- Si l'utilisateur change de langue, adapte-toi immédiatement
+- Utilise la devise appropriée selon le pays mentionné :
+  * Bénin/Togo = Franc CFA (XOF) 
+  * Autres pays = selon le contexte
 
-  englishKeywords.forEach(keyword => {
-    if (textLower.includes(keyword)) {
-      // Mots très spécifiques à l'anglais
-      if (['hello', 'english', 'speak'].includes(keyword)) {
-        englishScore += 3;
-      } else {
-        englishScore += 1;
-      }
-    }
-  });
+## RÈGLES FISCALES (à appliquer intelligemment) :
+- **Bénin** : charges sociales ~15%, impôts progressifs (0% jusqu'à 30K XOF, puis 10%, 15%, 20%)
+- **Togo** : charges sociales ~12%, impôts progressifs (0% jusqu'à 25K XOF, puis 12%, 18%, 25%)
 
-  spanishKeywords.forEach(keyword => {
-    if (textLower.includes(keyword)) {
-      // Mots très spécifiques à l'espagnol
-      if (['hola', 'español', 'hablar', 'benín'].includes(keyword)) {
-        spanishScore += 3;
-      } else {
-        spanishScore += 1;
-      }
-    }
-  });
+## INSTRUCTIONS DE RÉPONSE :
+1. Adapte automatiquement ta langue à celle de l'utilisateur
+2. Sois précis et professionnel
+3. Pour les calculs de paie, demande le montant brut et le pays si manquants
+4. Utilise le format de devise approprié (XOF pour Bénin/Togo)
+5. Fournis des exemples concrets adaptés au contexte
+6. Si tu détectes un calcul de salaire possible, propose de l'effectuer
 
-  console.log(`🔍 Scores de langue - FR: ${frenchScore}, EN: ${englishScore}, ES: ${spanishScore}`);
+## FORMAT DE RÉPONSE SPÉCIAL POUR CALCULS :
+Si tu peux effectuer un calcul de salaire, utilise ce format JSON à la fin de ta réponse :
 
-  if (frenchScore > englishScore && frenchScore > spanishScore) return 'fr';
-  if (englishScore > spanishScore) return 'en';
-  return 'es';
+CALCUL_RESULT: {
+  "brut": montant_brut_numerique,
+  "net": montant_net_calculé,
+  "pays": "pays_detecté",
+  "devise": "XOF_ou_autre",
+  "details": "explication_courte"
+}
+
+## PERSONNALITÉ :
+- Amical et professionnel
+- Patient et pédagogue
+- S'adapte au niveau de l'utilisateur
+- Proactif dans les suggestions
+
+Souviens-toi de ton historique de conversation et maintiens la cohérence linguistique avec l'utilisateur.`;
 };
 
-// Fonction pour créer le prompt système selon la langue
-const getSystemPrompt = (lang) => {
-  const prompts = {
-    fr: `Tu es un assistant virtuel expert en simulation de paie pour les pays d'Afrique de l'Ouest (Bénin, Togo, etc.).
-
-Ton rôle est d'aider les utilisateurs avec :
-- Les calculs de paie (salaire brut vers net)
-- Les règles fiscales et sociales
-- L'utilisation de la plateforme de simulation
-- Les questions sur les cotisations et charges
-
-Instructions CRUCIALES :
-- Tu DOIS ABSOLUMENT répondre en français uniquement
-- Même si l'utilisateur écrit en anglais, réponds toujours en français
-- Sois précis et professionnel
-- Si on te demande un calcul de paie, demande le montant brut et le pays
-- Pour le Bénin : charges sociales ~15%, impôts progressifs
-- Pour le Togo : charges sociales ~12%, impôts progressifs
-- Fournis des exemples concrets
-- Si tu ne connais pas une règle spécifique, recommande de consulter un expert
-
-IMPORTANT : Réponds uniquement en français, pas d'autres langues !`,
-
-    en: `You are a virtual assistant expert in payroll simulation for West African countries (Benin, Togo, etc.).
-
-Your role is to help users with:
-- Payroll calculations (gross to net salary)
-- Tax and social rules
-- Platform usage
-- Questions about contributions and charges
-
-CRUCIAL instructions:
-- You MUST respond in English only
-- Even if the user writes in French or Spanish, always respond in English
-- Be precise and professional
-- If asked for payroll calculation, request gross amount and country
-- For Benin: social charges ~15%, progressive taxes
-- For Togo: social charges ~12%, progressive taxes
-- Provide concrete examples
-- If you don't know a specific rule, recommend consulting an expert
-
-IMPORTANT: Respond only in English, no other languages!`,
-
-    es: `Eres un asistente virtual experto en simulación de nóminas para países de África Occidental (Benín, Togo, etc.).
-
-Tu función es ayudar a los usuarios con:
-- Cálculos de nómina (salario bruto a neto)
-- Reglas fiscales y sociales
-- Uso de la plataforma
-- Preguntas sobre cotizaciones y cargas
-
-Instrucciones CRUCIALES:
-- DEBES responder únicamente en español
-- Incluso si el usuario escribe en francés o inglés, siempre responde en español
-- Sé preciso y profesional
-- Si te piden un cálculo de nómina, pide el monto bruto y el país
-- Para Benín: cargas sociales ~15%, impuestos progresivos
-- Para Togo: cargas sociales ~12%, impuestos progresivos
-- Proporciona ejemplos concretos
-- Si no conoces una regla específica, recomienda consultar un experto
-
-IMPORTANTE: ¡Responde solo en español, no en otros idiomas!`
-  };
-
-  return prompts[lang] || prompts.fr;
-};
-
-// Fonction pour calculer le salaire net (simulation simplifiée)
-const calculateNetSalary = (brut, pays) => {
-  let chargesSociales = 0;
-  let impots = 0;
-
-  if (pays.toLowerCase().includes('benin') || pays.toLowerCase().includes('bénin')) {
-    chargesSociales = brut * 0.15; // 15% charges sociales
-    const salaireTaxable = brut - chargesSociales;
+// Fonction pour extraire et calculer automatiquement les résultats
+const extractCalculationFromResponse = (response) => {
+  try {
+    // Chercher le pattern CALCUL_RESULT dans la réponse
+    const calcPattern = /CALCUL_RESULT:\s*({[^}]+})/;
+    const match = response.match(calcPattern);
     
-    // Calcul impôt progressif simplifié pour le Bénin
-    if (salaireTaxable <= 30000) {
-      impots = 0;
-    } else if (salaireTaxable <= 50000) {
-      impots = (salaireTaxable - 30000) * 0.10;
-    } else if (salaireTaxable <= 80000) {
-      impots = 20000 * 0.10 + (salaireTaxable - 50000) * 0.15;
-    } else {
-      impots = 20000 * 0.10 + 30000 * 0.15 + (salaireTaxable - 80000) * 0.20;
+    if (match) {
+      const calcData = JSON.parse(match[1]);
+      
+      // Nettoyer la réponse en retirant le JSON
+      const cleanResponse = response.replace(calcPattern, '').trim();
+      
+      return {
+        hasCalculation: true,
+        response: cleanResponse,
+        calculation: calcData
+      };
     }
-  } else if (pays.toLowerCase().includes('togo')) {
-    chargesSociales = brut * 0.12; // 12% charges sociales
-    const salaireTaxable = brut - chargesSociales;
     
-    // Calcul impôt progressif simplifié pour le Togo
-    if (salaireTaxable <= 25000) {
-      impots = 0;
-    } else if (salaireTaxable <= 45000) {
-      impots = (salaireTaxable - 25000) * 0.12;
-    } else if (salaireTaxable <= 75000) {
-      impots = 20000 * 0.12 + (salaireTaxable - 45000) * 0.18;
-    } else {
-      impots = 20000 * 0.12 + 30000 * 0.18 + (salaireTaxable - 75000) * 0.25;
-    }
+    return {
+      hasCalculation: false,
+      response: response,
+      calculation: null
+    };
+  } catch (error) {
+    console.log('Erreur extraction calcul:', error);
+    return {
+      hasCalculation: false,
+      response: response,
+      calculation: null
+    };
   }
-
-  const net = brut - chargesSociales - impots;
-  return Math.round(net);
 };
 
 // Fonction pour obtenir un ID de session (ici simplifié avec l'IP)
@@ -275,62 +178,20 @@ export const chatbot = async (req, res) => {
       });
     }
 
-    // Détection de la langue
-    const detectedLang = detectLanguage(message);
-    console.log('🌍 Langue détectée:', detectedLang);
-
-    // Vérification des patterns pour calcul de paie avec extraction automatique
-    const messageLower = message.toLowerCase();
-    const salaryPattern = /(\d+(?:[\s,.]?\d+)*).*(benin|bénin|togo)/i;
-    const salaryMatch = message.match(salaryPattern);
-    
-    // Si c'est un calcul de salaire et qu'on a les infos nécessaires
-    if (salaryMatch && (messageLower.includes('calcul') || messageLower.includes('salaire') || messageLower.includes('paie') || messageLower.includes('calculate') || messageLower.includes('salary'))) {
-      const brutAmount = parseInt(salaryMatch[1].replace(/[\s,.]/g, ''));
-      const country = salaryMatch[2].toLowerCase();
-      const netAmount = calculateNetSalary(brutAmount, country);
-      
-      const calculationMessages = {
-        fr: `Voici le calcul de votre salaire pour ${country.charAt(0).toUpperCase() + country.slice(1)} :`,
-        en: `Here is your salary calculation for ${country.charAt(0).toUpperCase() + country.slice(1)}:`,
-        es: `Aquí está el cálculo de su salario para ${country.charAt(0).toUpperCase() + country.slice(1)}:`
-      };
-      
-      const responseText = calculationMessages[detectedLang] || calculationMessages.fr;
-      
-      // Ajouter à l'historique
-      addToConversationHistory(sessionId, 'user', message);
-      addToConversationHistory(sessionId, 'model', responseText);
-      
-      const actionData = {
-        reply: responseText,
-        action: 'display_paie_result',
-        data: {
-          brut: brutAmount,
-          net: netAmount,
-          pays: country
-        },
-        lang: detectedLang
-      };
-
-      return res.json(actionData);
-    }
-
-    // Sinon, appeler l'API Gemini pour une réponse intelligente avec contexte
     try {
       // Récupérer l'historique de conversation
       const conversationHistory = getConversationHistory(sessionId);
       
       // Si c'est le premier message ou historique vide, ajouter le prompt système
       if (conversationHistory.length === 0) {
-        const systemPrompt = getSystemPrompt(detectedLang);
+        const systemPrompt = getSmartSystemPrompt();
         conversationHistory.push({
           role: 'user',
           parts: [{ text: systemPrompt }]
         });
         conversationHistory.push({
           role: 'model',
-          parts: [{ text: `Je suis votre assistant pour la simulation de paie. Comment puis-je vous aider ?` }]
+          parts: [{ text: `Je suis votre assistant intelligent pour la simulation de paie. Je m'adapte automatiquement à votre langue et au contexte de votre région. Comment puis-je vous aider ?` }]
         });
       }
 
@@ -343,56 +204,77 @@ export const chatbot = async (req, res) => {
       // Appel à l'API Gemini 2.0 Flash avec tout l'historique
       const botReply = await callGeminiAPI(conversationHistory);
 
-      // Ajouter la réponse du bot à l'historique
+      // Extraire les calculs potentiels de la réponse
+      const { hasCalculation, response: cleanResponse, calculation } = extractCalculationFromResponse(botReply);
+
+      // Ajouter la réponse du bot à l'historique (version nettoyée)
       conversationHistory.push({
         role: 'model',
-        parts: [{ text: botReply }]
+        parts: [{ text: cleanResponse }]
       });
 
       // Sauvegarder l'historique mis à jour
       conversations.set(sessionId, conversationHistory);
 
-      const actionData = {
-        reply: botReply,
-        action: null,
-        data: {},
-        lang: detectedLang
-      };
+      // Préparer la réponse selon qu'il y a un calcul ou non
+      if (hasCalculation && calculation) {
+        console.log('🧮 Calcul détecté:', calculation);
+        
+        const actionData = {
+          reply: cleanResponse,
+          action: 'display_paie_result',
+          data: {
+            brut: calculation.brut,
+            net: calculation.net,
+            pays: calculation.pays,
+            devise: calculation.devise || 'XOF',
+            details: calculation.details
+          },
+          lang: 'auto' // Laisse l'IA gérer la langue
+        };
 
-      res.json(actionData);
+        return res.json(actionData);
+      } else {
+        const actionData = {
+          reply: cleanResponse,
+          action: null,
+          data: {},
+          lang: 'auto' // Laisse l'IA gérer la langue
+        };
+
+        return res.json(actionData);
+      }
 
     } catch (geminiError) {
       console.error('❌ Erreur Gemini:', geminiError);
       
-      // Fallback avec une réponse basique
-      const fallbackMessages = {
-        fr: 'Je suis votre assistant pour la simulation de paie. Comment puis-je vous aider avec vos calculs de salaire ?',
-        en: 'I am your assistant for payroll simulation. How can I help you with your salary calculations?',
-        es: 'Soy tu asistente para la simulación de nóminas. ¿Cómo puedo ayudarte con tus cálculos de salario?'
-      };
+      // Fallback intelligent qui s'adapte au message de l'utilisateur
+      let fallbackMessage = 'Je suis votre assistant pour la simulation de paie. Comment puis-je vous aider ?';
+      
+      // Détection basique pour le fallback
+      const messageLower = message.toLowerCase();
+      if (messageLower.includes('hello') || messageLower.includes('hi')) {
+        fallbackMessage = 'Hello! I am your payroll simulation assistant. How can I help you?';
+      } else if (messageLower.includes('hola') || messageLower.includes('gracias')) {
+        fallbackMessage = '¡Hola! Soy tu asistente de simulación de nóminas. ¿Cómo puedo ayudarte?';
+      }
 
       res.json({
-        reply: fallbackMessages[detectedLang] || fallbackMessages.fr,
+        reply: fallbackMessage,
         action: null,
         data: {},
-        lang: detectedLang
+        lang: 'auto'
       });
     }
 
   } catch (error) {
     console.error('❌ Erreur chatbot:', error);
     
-    const errorMessages = {
-      fr: 'Désolé, une erreur est survenue. Veuillez réessayer.',
-      en: 'Sorry, an error occurred. Please try again.',
-      es: 'Lo siento, ocurrió un error. Por favor, inténtalo de nuevo.'
-    };
-    
     res.status(500).json({
-      reply: errorMessages.fr,
+      reply: 'Désolé, une erreur est survenue. Veuillez réessayer.',
       action: null,
       data: {},
-      lang: 'fr'
+      lang: 'auto'
     });
   }
 };
