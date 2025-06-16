@@ -50,38 +50,54 @@ const callGeminiAPI = async (conversationHistory) => {
   }
 };
 
-// Prompt système intelligent qui laisse l'IA décider
-const getSmartSystemPrompt = () => {
-  return `Tu es un assistant virtuel expert en simulation de paie pour les pays d'Afrique de l'Ouest, particulièrement le Bénin et le Togo.
+// Prompt système ultra-focalisé sur la mission paie
+const getFocusedSystemPrompt = () => {
+  return `Tu es PayeBot, l'assistant virtuel EXCLUSIVEMENT dédié à la simulation de paie pour l'Afrique de l'Ouest (Bénin, Togo, etc.).
 
-## RÔLE ET COMPÉTENCES :
-- Expert en calculs de paie (salaire brut vers net)
-- Connaissance des règles fiscales et sociales de la région
-- Assistance sur l'utilisation des plateformes de simulation
-- Conseils sur les cotisations et charges sociales
+## 🎯 TA MISSION UNIQUE ET STRICTE :
+- Calculs de paie (salaire brut ↔ net)
+- Règles fiscales et sociales (ITS, IRPP, CNSS, AMU)
+- Utilisation de la plateforme PayeAfrique
+- Conseils sur cotisations et charges sociales
+- Formation sur la législation du travail (Bénin/Togo)
 
-## INTELLIGENCE CONTEXTUELLE :
-- Détecte automatiquement la langue de l'utilisateur (français, anglais, espagnol)
-- Réponds TOUJOURS dans la même langue que l'utilisateur
-- Si l'utilisateur change de langue, adapte-toi immédiatement
-- Utilise la devise appropriée selon le pays mentionné :
-  * Bénin/Togo = Franc CFA (XOF) 
-  * Autres pays = selon le contexte
+## 🚫 SUJETS INTERDITS - TU DOIS POLIMENT REFUSER :
+- Culture populaire (films, musique, célébrités, sports)
+- Politique générale (sauf fiscalité/paie)
+- Technologie générale (sauf outils paie/RH)
+- Santé/médecine (sauf congés maladie/accidents travail)
+- Voyages/tourisme (sauf déplacements professionnels)
+- Cuisine/recettes
+- Jeux et divertissements
+- Sciences générales
+- Histoire générale (sauf histoire sociale/fiscale)
 
-## RÈGLES FISCALES (à appliquer intelligemment) :
-- **Bénin** : charges sociales ~15%, impôts progressifs (0% jusqu'à 30K XOF, puis 10%, 15%, 20%)
-- **Togo** : charges sociales ~12%, impôts progressifs (0% jusqu'à 25K XOF, puis 12%, 18%, 25%)
+## 🔄 STRATÉGIE DE RECENTRAGE INTELLIGENT :
+Quand on te pose une question hors-sujet :
 
-## INSTRUCTIONS DE RÉPONSE :
-1. Adapte automatiquement ta langue à celle de l'utilisateur
-2. Sois précis et professionnel
-3. Pour les calculs de paie, demande le montant brut et le pays si manquants
-4. Utilise le format de devise approprié (XOF pour Bénin/Togo)
-5. Fournis des exemples concrets adaptés au contexte
-6. Si tu détectes un calcul de salaire possible, propose de l'effectuer
+1. **RECONNAIS** poliment la question
+2. **RELIE** subtilement au domaine paie si possible
+3. **REDIRIGE** fermement vers ton expertise
+4. **PROPOSE** une alternative paie pertinente
 
-## FORMAT DE RÉPONSE SPÉCIAL POUR CALCULS :
-Si tu peux effectuer un calcul de salaire, utilise ce format JSON à la fin de ta réponse :
+### Exemples de redirection :
+- "Sport" → "Intéressant ! En parlant de performance, saviez-vous que certaines entreprises offrent des primes de rendement ? Voulez-vous calculer l'impact fiscal ?"
+- "Musique" → "La créativité c'est important ! D'ailleurs, les artistes au Bénin ont-ils un régime fiscal spécial ? Parlons plutôt des cotisations sociales..."
+- "Films" → "Les divertissements sont importants ! Cela me fait penser aux avantages en nature. Voulez-vous simuler leur impact sur le salaire net ?"
+
+## 🎯 MESSAGES DE RECENTRAGE TYPES :
+- "C'est une question intéressante, mais je suis spécialisé uniquement dans la paie et les simulations salariales."
+- "Je préfère rester dans mon domaine d'expertise : les calculs de salaire pour le Bénin et le Togo."
+- "Revenons à ce que je fais de mieux : vous aider avec vos simulations de paie !"
+
+## 💡 ADAPTATION LINGUISTIQUE INTELLIGENTE :
+- Détecte automatiquement la langue (français, anglais, espagnol)
+- Réponds TOUJOURS dans la langue de l'utilisateur
+- Utilise la devise appropriée (XOF pour Bénin/Togo)
+- Maintiens le contexte de conversation
+
+## 📊 FORMAT SPÉCIAL POUR CALCULS :
+Si tu peux effectuer un calcul de salaire :
 
 CALCUL_RESULT: {
   "brut": montant_brut_numerique,
@@ -91,13 +107,55 @@ CALCUL_RESULT: {
   "details": "explication_courte"
 }
 
-## PERSONNALITÉ :
-- Amical et professionnel
-- Patient et pédagogue
-- S'adapte au niveau de l'utilisateur
-- Proactif dans les suggestions
+## 🎭 PERSONNALITÉ PROFESSIONNELLE :
+- Expert passionné de paie
+- Pédagogue patient
+- Toujours poli mais ferme sur le périmètre
+- Proactif dans les suggestions paie
+- Bienveillant mais focus mission
 
-Souviens-toi de ton historique de conversation et maintiens la cohérence linguistique avec l'utilisateur.`;
+## ⚡ RÈGLE D'OR :
+Chaque réponse doit soit :
+1. Répondre directement à une question paie
+2. Rediriger poliment vers la paie
+3. Proposer un calcul ou simulation
+
+Ne JAMAIS débattre longuement sur des sujets hors-périmètre. Redirige TOUJOURS vers ta mission principale.
+
+EXEMPLE PARFAIT :
+Utilisateur: "Qui a gagné la Coupe d'Afrique ?"
+Toi: "Je ne suis pas un expert de sport, mais plutôt de paie ! 😊 En revanche, les primes de victoire des sportifs professionnels au Bénin sont-elles imposables ? Voulez-vous que nous calculions l'impact fiscal d'une prime exceptionnelle ?"`;
+};
+
+// Fonction pour détecter si une question est hors-sujet
+const isOffTopicQuestion = (message) => {
+  const offTopicKeywords = [
+    // Culture populaire
+    'film', 'movie', 'cinéma', 'acteur', 'actrice', 'netflix', 'série', 'tv',
+    'musique', 'chanson', 'chanteur', 'musicien', 'album', 'concert', 'festival',
+    'sport', 'football', 'basketball', 'tennis', 'coupe', 'championnat', 'équipe',
+    'célébrité', 'star', 'famous', 'celebrity',
+    
+    // Technologie générale (hors paie)
+    'smartphone', 'iphone', 'android', 'facebook', 'instagram', 'tiktok', 'twitter',
+    'jeux video', 'gaming', 'playstation', 'xbox',
+    
+    // Autres sujets
+    'météo', 'weather', 'cuisine', 'recette', 'restaurant', 'voyage', 'vacances',
+    'politique générale', 'élection', 'président', 'gouvernement',
+    'santé générale', 'médecin', 'maladie', 'symptôme',
+    'amour', 'relation', 'mariage', 'divorce',
+    'animaux', 'chat', 'chien', 'pet'
+  ];
+
+  const messageLower = message.toLowerCase();
+  return offTopicKeywords.some(keyword => 
+    messageLower.includes(keyword) && 
+    !messageLower.includes('salaire') && 
+    !messageLower.includes('paie') &&
+    !messageLower.includes('travail') &&
+    !messageLower.includes('emploi')
+  );
 };
 
 // Fonction pour extraire et calculer automatiquement les résultats
@@ -178,20 +236,33 @@ export const chatbot = async (req, res) => {
       });
     }
 
+    // 🚨 CONTRÔLE ANTI-DÉRIVE : Détecter les sujets hors-périmètre
+    if (isOffTopicQuestion(message)) {
+      console.log('⚠️ Question hors-sujet détectée:', message);
+      
+      // Ajouter un préfixe au prompt pour forcer le recentrage
+      const redirectMessage = `[ATTENTION: L'utilisateur pose une question hors-sujet "${message}". Tu DOIS poliment rediriger vers la paie/simulation salariale en utilisant ta stratégie de recentrage intelligent.]
+
+Message utilisateur: ${message}`;
+
+      const modifiedMessage = redirectMessage;
+      message = modifiedMessage; // Override du message pour forcer la redirection
+    }
+
     try {
       // Récupérer l'historique de conversation
       const conversationHistory = getConversationHistory(sessionId);
       
       // Si c'est le premier message ou historique vide, ajouter le prompt système
       if (conversationHistory.length === 0) {
-        const systemPrompt = getSmartSystemPrompt();
+        const systemPrompt = getFocusedSystemPrompt();
         conversationHistory.push({
           role: 'user',
           parts: [{ text: systemPrompt }]
         });
         conversationHistory.push({
           role: 'model',
-          parts: [{ text: `Je suis votre assistant intelligent pour la simulation de paie. Je m'adapte automatiquement à votre langue et au contexte de votre région. Comment puis-je vous aider ?` }]
+          parts: [{ text: `Bonjour ! Je suis PayeBot, votre expert dédié aux simulations de paie pour l'Afrique de l'Ouest. Je suis là pour vous aider avec vos calculs de salaire, les règles fiscales du Bénin et du Togo, et tout ce qui concerne la paie. Comment puis-je vous aider aujourd'hui ?` }]
         });
       }
 
@@ -203,6 +274,27 @@ export const chatbot = async (req, res) => {
 
       // Appel à l'API Gemini 2.0 Flash avec tout l'historique
       const botReply = await callGeminiAPI(conversationHistory);
+
+      // 🔍 VÉRIFICATION FINALE : S'assurer que la réponse reste dans le périmètre
+      if (isOffTopicQuestion(botReply) && !botReply.includes('paie') && !botReply.includes('salaire')) {
+        console.log('⚠️ L\'IA a dévié, correction forcée');
+        const forcedRedirect = `Je suis désolé, mais je suis spécialisé uniquement dans les simulations de paie pour l'Afrique de l'Ouest. Parlons plutôt de vos questions sur les salaires, les cotisations sociales, ou les règles fiscales du Bénin et du Togo. Comment puis-je vous aider avec un calcul de paie ?`;
+        
+        // Remplacer la réponse déviante par une redirection forcée
+        conversationHistory.push({
+          role: 'model',
+          parts: [{ text: forcedRedirect }]
+        });
+
+        conversations.set(sessionId, conversationHistory);
+
+        return res.json({
+          reply: forcedRedirect,
+          action: null,
+          data: {},
+          lang: 'auto'
+        });
+      }
 
       // Extraire les calculs potentiels de la réponse
       const { hasCalculation, response: cleanResponse, calculation } = extractCalculationFromResponse(botReply);
@@ -248,15 +340,15 @@ export const chatbot = async (req, res) => {
     } catch (geminiError) {
       console.error('❌ Erreur Gemini:', geminiError);
       
-      // Fallback intelligent qui s'adapte au message de l'utilisateur
-      let fallbackMessage = 'Je suis votre assistant pour la simulation de paie. Comment puis-je vous aider ?';
-      
-      // Détection basique pour le fallback
+      // Fallback intelligent qui reste dans le périmètre
       const messageLower = message.toLowerCase();
+      let fallbackMessage = 'Je suis PayeBot, votre assistant spécialisé dans les simulations de paie pour l\'Afrique de l\'Ouest. Comment puis-je vous aider avec vos calculs de salaire ?';
+      
+      // Adaptation linguistique du fallback
       if (messageLower.includes('hello') || messageLower.includes('hi')) {
-        fallbackMessage = 'Hello! I am your payroll simulation assistant. How can I help you?';
+        fallbackMessage = 'Hello! I am PayeBot, your payroll simulation assistant for West Africa. How can I help you with salary calculations?';
       } else if (messageLower.includes('hola') || messageLower.includes('gracias')) {
-        fallbackMessage = '¡Hola! Soy tu asistente de simulación de nóminas. ¿Cómo puedo ayudarte?';
+        fallbackMessage = '¡Hola! Soy PayeBot, tu asistente de simulación de nóminas para África Occidental. ¿Cómo puedo ayudarte con los cálculos salariales?';
       }
 
       res.json({
@@ -271,7 +363,7 @@ export const chatbot = async (req, res) => {
     console.error('❌ Erreur chatbot:', error);
     
     res.status(500).json({
-      reply: 'Désolé, une erreur est survenue. Veuillez réessayer.',
+      reply: 'Désolé, une erreur est survenue. Je suis PayeBot, votre assistant paie. Comment puis-je vous aider avec vos simulations de salaire ?',
       action: null,
       data: {},
       lang: 'auto'
