@@ -11,21 +11,16 @@ console.log('✅ GEMINI_API_KEY trouvée:', process.env.GEMINI_API_KEY.substring
 // Configuration pour l'API Gemini 2.0 Flash
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
 
+// Stockage des conversations en mémoire (pour maintenir le contexte)
+const conversations = new Map();
+
 // Fonction pour appeler l'API Gemini 2.0 Flash directement
-const callGeminiAPI = async (prompt) => {
+const callGeminiAPI = async (conversationHistory) => {
   try {
-    console.log('🚀 Appel à l\'API Gemini 2.0 Flash...');
+    console.log('🚀 Appel à l\'API Gemini 2.0 Flash avec historique...');
     
     const requestBody = {
-      contents: [
-        {
-          parts: [
-            {
-              text: prompt
-            }
-          ]
-        }
-      ],
+      contents: conversationHistory,
       generationConfig: {
         temperature: 0.7,
         topP: 0.8,
@@ -55,16 +50,34 @@ const callGeminiAPI = async (prompt) => {
   }
 };
 
-// Fonction pour détecter la langue du message
+// Fonction améliorée pour détecter la langue du message
 const detectLanguage = (text) => {
-  // Mots clés français
-  const frenchKeywords = ['bonjour', 'salut', 'merci', 'comment', 'pourquoi', 'que', 'qui', 'où', 'quand', 'combien', 'je', 'tu', 'il', 'elle', 'nous', 'vous', 'ils', 'elles', 'un', 'une', 'le', 'la', 'les', 'de', 'du', 'des', 'à', 'au', 'aux', 'pour', 'avec', 'sans', 'sur', 'sous', 'dans', 'par', 'ça', 'oui', 'non'];
+  // Mots clés français (élargi et amélioré)
+  const frenchKeywords = [
+    'bonjour', 'bonsoir', 'salut', 'coucou', 'bonne', 'merci', 'comment', 'pourquoi', 
+    'que', 'qui', 'où', 'quand', 'combien', 'quel', 'quelle', 'je', 'tu', 'il', 'elle', 
+    'nous', 'vous', 'ils', 'elles', 'un', 'une', 'le', 'la', 'les', 'de', 'du', 'des', 
+    'à', 'au', 'aux', 'pour', 'avec', 'sans', 'sur', 'sous', 'dans', 'par', 'ça', 
+    'oui', 'non', 'français', 'francais', 'parle', 'parler', 'aide', 'aider', 
+    'calcul', 'calculer', 'salaire', 'paie', 'benin', 'bénin', 'togo', 'puis'
+  ];
   
   // Mots clés anglais
-  const englishKeywords = ['hello', 'hi', 'thank', 'thanks', 'how', 'why', 'what', 'who', 'where', 'when', 'which', 'i', 'you', 'he', 'she', 'we', 'they', 'a', 'an', 'the', 'of', 'to', 'for', 'with', 'without', 'on', 'in', 'by', 'yes', 'no'];
+  const englishKeywords = [
+    'hello', 'hi', 'good', 'thank', 'thanks', 'how', 'why', 'what', 'who', 'where', 
+    'when', 'which', 'i', 'you', 'he', 'she', 'we', 'they', 'a', 'an', 'the', 'of', 
+    'to', 'for', 'with', 'without', 'on', 'in', 'by', 'yes', 'no', 'english', 
+    'speak', 'help', 'calculate', 'salary', 'payroll', 'benin', 'togo', 'can'
+  ];
   
   // Mots clés espagnols
-  const spanishKeywords = ['hola', 'gracias', 'cómo', 'por qué', 'qué', 'quién', 'dónde', 'cuándo', 'cuánto', 'yo', 'tú', 'él', 'ella', 'nosotros', 'vosotros', 'ellos', 'ellas', 'un', 'una', 'el', 'la', 'los', 'las', 'de', 'del', 'para', 'con', 'sin', 'en', 'por', 'sí', 'no'];
+  const spanishKeywords = [
+    'hola', 'buenas', 'gracias', 'cómo', 'por qué', 'qué', 'quién', 'dónde', 'cuándo', 
+    'cuánto', 'yo', 'tú', 'él', 'ella', 'nosotros', 'vosotros', 'ellos', 'ellas', 
+    'un', 'una', 'el', 'la', 'los', 'las', 'de', 'del', 'para', 'con', 'sin', 'en', 
+    'por', 'sí', 'no', 'español', 'habla', 'hablar', 'ayuda', 'ayudar', 'calcular', 
+    'salario', 'nómina', 'benín', 'togo', 'puede'
+  ];
 
   const textLower = text.toLowerCase();
   
@@ -72,20 +85,44 @@ const detectLanguage = (text) => {
   let englishScore = 0;
   let spanishScore = 0;
 
+  // Comptage avec pondération pour les mots plus spécifiques
   frenchKeywords.forEach(keyword => {
-    if (textLower.includes(keyword)) frenchScore++;
+    if (textLower.includes(keyword)) {
+      // Mots très spécifiques au français
+      if (['bonsoir', 'bonjour', 'français', 'francais', 'benin', 'bénin'].includes(keyword)) {
+        frenchScore += 3;
+      } else {
+        frenchScore += 1;
+      }
+    }
   });
 
   englishKeywords.forEach(keyword => {
-    if (textLower.includes(keyword)) englishScore++;
+    if (textLower.includes(keyword)) {
+      // Mots très spécifiques à l'anglais
+      if (['hello', 'english', 'speak'].includes(keyword)) {
+        englishScore += 3;
+      } else {
+        englishScore += 1;
+      }
+    }
   });
 
   spanishKeywords.forEach(keyword => {
-    if (textLower.includes(keyword)) spanishScore++;
+    if (textLower.includes(keyword)) {
+      // Mots très spécifiques à l'espagnol
+      if (['hola', 'español', 'hablar', 'benín'].includes(keyword)) {
+        spanishScore += 3;
+      } else {
+        spanishScore += 1;
+      }
+    }
   });
 
-  if (frenchScore >= englishScore && frenchScore >= spanishScore) return 'fr';
-  if (englishScore >= spanishScore) return 'en';
+  console.log(`🔍 Scores de langue - FR: ${frenchScore}, EN: ${englishScore}, ES: ${spanishScore}`);
+
+  if (frenchScore > englishScore && frenchScore > spanishScore) return 'fr';
+  if (englishScore > spanishScore) return 'en';
   return 'es';
 };
 
@@ -100,8 +137,9 @@ Ton rôle est d'aider les utilisateurs avec :
 - L'utilisation de la plateforme de simulation
 - Les questions sur les cotisations et charges
 
-Instructions importantes :
-- Réponds toujours en français
+Instructions CRUCIALES :
+- Tu DOIS ABSOLUMENT répondre en français uniquement
+- Même si l'utilisateur écrit en anglais, réponds toujours en français
 - Sois précis et professionnel
 - Si on te demande un calcul de paie, demande le montant brut et le pays
 - Pour le Bénin : charges sociales ~15%, impôts progressifs
@@ -109,7 +147,7 @@ Instructions importantes :
 - Fournis des exemples concrets
 - Si tu ne connais pas une règle spécifique, recommande de consulter un expert
 
-Réponds uniquement en texte simple, pas de JSON.`,
+IMPORTANT : Réponds uniquement en français, pas d'autres langues !`,
 
     en: `You are a virtual assistant expert in payroll simulation for West African countries (Benin, Togo, etc.).
 
@@ -119,8 +157,9 @@ Your role is to help users with:
 - Platform usage
 - Questions about contributions and charges
 
-Important instructions:
-- Always respond in English
+CRUCIAL instructions:
+- You MUST respond in English only
+- Even if the user writes in French or Spanish, always respond in English
 - Be precise and professional
 - If asked for payroll calculation, request gross amount and country
 - For Benin: social charges ~15%, progressive taxes
@@ -128,7 +167,7 @@ Important instructions:
 - Provide concrete examples
 - If you don't know a specific rule, recommend consulting an expert
 
-Respond only in plain text, no JSON.`,
+IMPORTANT: Respond only in English, no other languages!`,
 
     es: `Eres un asistente virtual experto en simulación de nóminas para países de África Occidental (Benín, Togo, etc.).
 
@@ -138,8 +177,9 @@ Tu función es ayudar a los usuarios con:
 - Uso de la plataforma
 - Preguntas sobre cotizaciones y cargas
 
-Instrucciones importantes:
-- Siempre responde en español
+Instrucciones CRUCIALES:
+- DEBES responder únicamente en español
+- Incluso si el usuario escribe en francés o inglés, siempre responde en español
 - Sé preciso y profesional
 - Si te piden un cálculo de nómina, pide el monto bruto y el país
 - Para Benín: cargas sociales ~15%, impuestos progresivos
@@ -147,7 +187,7 @@ Instrucciones importantes:
 - Proporciona ejemplos concretos
 - Si no conoces una regla específica, recomienda consultar un experto
 
-Responde solo en texto simple, sin JSON.`
+IMPORTANTE: ¡Responde solo en español, no en otros idiomas!`
   };
 
   return prompts[lang] || prompts.fr;
@@ -192,25 +232,42 @@ const calculateNetSalary = (brut, pays) => {
   return Math.round(net);
 };
 
-// Fonction pour tester la connexion à l'API Gemini
-const testGeminiConnection = async () => {
-  try {
-    console.log('🔍 Test de connexion à l\'API Gemini 2.0 Flash...');
-    const response = await callGeminiAPI("Hello, please respond with 'Connection successful'");
-    console.log('✅ Test Gemini réussi:', response);
-    return true;
-  } catch (error) {
-    console.error('❌ Test Gemini échoué:', error);
-    return false;
+// Fonction pour obtenir un ID de session (ici simplifié avec l'IP)
+const getSessionId = (req) => {
+  return req.ip || req.connection.remoteAddress || 'default';
+};
+
+// Fonction pour gérer l'historique de conversation
+const getConversationHistory = (sessionId) => {
+  if (!conversations.has(sessionId)) {
+    conversations.set(sessionId, []);
   }
+  return conversations.get(sessionId);
+};
+
+const addToConversationHistory = (sessionId, role, content) => {
+  const history = getConversationHistory(sessionId);
+  history.push({
+    role: role,
+    parts: [{ text: content }]
+  });
+  
+  // Limiter l'historique à 20 messages (10 échanges)
+  if (history.length > 20) {
+    history.splice(0, history.length - 20);
+  }
+  
+  conversations.set(sessionId, history);
 };
 
 // Contrôleur principal du chatbot
 export const chatbot = async (req, res) => {
   try {
     const { message } = req.body;
+    const sessionId = getSessionId(req);
 
     console.log('📩 Message reçu:', message);
+    console.log('🔑 Session ID:', sessionId);
 
     if (!message || typeof message !== 'string') {
       return res.status(400).json({
@@ -239,8 +296,14 @@ export const chatbot = async (req, res) => {
         es: `Aquí está el cálculo de su salario para ${country.charAt(0).toUpperCase() + country.slice(1)}:`
       };
       
+      const responseText = calculationMessages[detectedLang] || calculationMessages.fr;
+      
+      // Ajouter à l'historique
+      addToConversationHistory(sessionId, 'user', message);
+      addToConversationHistory(sessionId, 'model', responseText);
+      
       const actionData = {
-        reply: calculationMessages[detectedLang] || calculationMessages.fr,
+        reply: responseText,
         action: 'display_paie_result',
         data: {
           brut: brutAmount,
@@ -253,20 +316,41 @@ export const chatbot = async (req, res) => {
       return res.json(actionData);
     }
 
-    // Sinon, appeler l'API Gemini pour une réponse intelligente
+    // Sinon, appeler l'API Gemini pour une réponse intelligente avec contexte
     try {
-      // Création du prompt système
-      const systemPrompt = getSystemPrompt(detectedLang);
+      // Récupérer l'historique de conversation
+      const conversationHistory = getConversationHistory(sessionId);
+      
+      // Si c'est le premier message ou historique vide, ajouter le prompt système
+      if (conversationHistory.length === 0) {
+        const systemPrompt = getSystemPrompt(detectedLang);
+        conversationHistory.push({
+          role: 'user',
+          parts: [{ text: systemPrompt }]
+        });
+        conversationHistory.push({
+          role: 'model',
+          parts: [{ text: `Je suis votre assistant pour la simulation de paie. Comment puis-je vous aider ?` }]
+        });
+      }
 
-      // Préparation du prompt complet
-      const fullPrompt = `${systemPrompt}
+      // Ajouter le nouveau message de l'utilisateur
+      conversationHistory.push({
+        role: 'user',
+        parts: [{ text: message }]
+      });
 
-Message de l'utilisateur : ${message}
+      // Appel à l'API Gemini 2.0 Flash avec tout l'historique
+      const botReply = await callGeminiAPI(conversationHistory);
 
-Réponds de manière utile et professionnelle.`;
+      // Ajouter la réponse du bot à l'historique
+      conversationHistory.push({
+        role: 'model',
+        parts: [{ text: botReply }]
+      });
 
-      // Appel à l'API Gemini 2.0 Flash
-      const botReply = await callGeminiAPI(fullPrompt);
+      // Sauvegarder l'historique mis à jour
+      conversations.set(sessionId, conversationHistory);
 
       const actionData = {
         reply: botReply,
@@ -313,14 +397,16 @@ Réponds de manière utile et professionnelle.`;
   }
 };
 
-// Contrôleur pour obtenir l'historique des conversations (optionnel)
+// Contrôleur pour obtenir l'historique des conversations
 export const getChatHistory = async (req, res) => {
   try {
-    // Ici vous pouvez implémenter la logique pour récupérer l'historique
-    // depuis une base de données si nécessaire
+    const sessionId = getSessionId(req);
+    const history = getConversationHistory(sessionId);
+    
     res.json({
       message: 'Historique des conversations',
-      history: []
+      history: history,
+      sessionId: sessionId
     });
   } catch (error) {
     console.error('Erreur récupération historique:', error);
@@ -330,5 +416,20 @@ export const getChatHistory = async (req, res) => {
   }
 };
 
-// Test de connexion au démarrage du serveur
-testGeminiConnection();
+// Contrôleur pour effacer l'historique d'une session
+export const clearHistory = async (req, res) => {
+  try {
+    const sessionId = getSessionId(req);
+    conversations.delete(sessionId);
+    
+    res.json({
+      message: 'Historique effacé avec succès',
+      sessionId: sessionId
+    });
+  } catch (error) {
+    console.error('Erreur effacement historique:', error);
+    res.status(500).json({
+      error: 'Erreur lors de l\'effacement de l\'historique'
+    });
+  }
+};
