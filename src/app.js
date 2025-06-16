@@ -9,7 +9,7 @@ import { fileURLToPath } from "url";
 import path from "path";
 // import ErrorHandingMiddleware from './src/middleware/ErrorHandingMiddleware.js';
 
-const PORT = process.env.PORT || 5100;
+const PORT = process.env.PORT || 5000;
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
