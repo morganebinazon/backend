@@ -1,6 +1,5 @@
 // src/controllers/authController.ts
 import bcrypt from 'bcrypt';
-import { generateAuthToken } from '../utils/auth';
 import User from '../models/user.js';
 import Compagny from '../models/compagny.js';
 
