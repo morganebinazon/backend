@@ -4,8 +4,9 @@ import User from "../models/user.js";
 import Compagny from "../models/compagny.js";
 import { generateAuthToken } from "../utils/auth.js";
 import sequelize from "../db.js";
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 import config from "../config/config.js";
+import Employee from "../models/employee.js";
 
 export const register = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -158,9 +159,19 @@ export const login = async (req, res) => {
     // Recherche de l'utilisateur ou de l'entreprise
     const user = await User.findOne({ where: { email } });
     const company = await Compagny.findOne({ where: { email } });
+    const employee = await Employee.findOne({ where: { email } });
 
-    const account = user || company;
-    const accountType = user ? "user" : "company";
+    const account = user || company || employee;
+    let accountType;
+    if (user) {
+      accountType = "user";
+    } else if (company) {
+      accountType = "company";
+    } else if (employee) {
+      accountType = "employee";
+    } else {
+      accountType = null;
+    }
 
     if (!account) {
       return res.status(401).json({
@@ -182,11 +193,18 @@ export const login = async (req, res) => {
     const payload = {
       id: account.id,
       email: account.email,
-      role: accountType === "user" ? "client" : "entreprise",
+      role:
+        accountType === "user"
+          ? "client"
+          : accountType === "company"
+          ? "entreprise"
+          : "employee",
       name:
         accountType === "user"
           ? `${account.firstName} ${account.lastName}`
-          : account.name,
+          : accountType === "company"
+          ? account.name
+          : `${account.firstName} ${account.lastName}`,
     };
 
     // Génération du token avec durée variable selon rememberMe
@@ -209,6 +227,11 @@ export const login = async (req, res) => {
           ...(accountType === "company" && {
             companyName: account.name,
             taxId: account.tax_identification_number,
+          }),
+          ...(accountType === "employee" && {
+            position: account.position,
+            department: account.department,
+            companyId: account.company_id,
           }),
         },
       },

@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../db.js";
 
-const Compagny = sequelize.define("compagny", {
+const Compagny = sequelize.define("compagnies", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   name: { type: DataTypes.STRING, allowNull: false },
   secteur: { type: DataTypes.STRING, allowNull: true },
