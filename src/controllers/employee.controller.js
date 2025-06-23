@@ -5,6 +5,7 @@ import Employee from "../models/employee.js";
 import Compagny from "../models/compagny.js";
 import User from "../models/user.js";
 import sequelize from "../db.js";
+import { Op } from 'sequelize';
 
 /**
  * @desc    Créer un nouvel employé par une entreprise
@@ -13,7 +14,7 @@ import sequelize from "../db.js";
  */
 export const createEmployee = async (req, res) => {
   const { companyId } = req.params;
-  const { firstName, lastName, email, position, department, salary } = req.body;
+  const { firstName, lastName, email, position, department, salary, benefits } = req.body;
 
   try {
     // 1. Validation des données d'entrée
@@ -21,6 +22,23 @@ export const createEmployee = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Les champs email, prénom et nom sont obligatoires",
+      });
+    }
+
+    // ✅ Validation du salaire
+    if (!salary || isNaN(salary) || salary < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Le salaire doit être un nombre positif",
+      });
+    }
+
+    // ✅ Vérification de la limite du salaire (basé sur DECIMAL(15,2))
+    const maxSalary = 9999999999999.99; // 13 chiffres avant la virgule + 2 après
+    if (salary > maxSalary) {
+      return res.status(400).json({
+        success: false,
+        message: `Le salaire ne peut pas dépasser ${maxSalary.toLocaleString()}`,
       });
     }
 
@@ -57,23 +75,23 @@ export const createEmployee = async (req, res) => {
     const transaction = await sequelize.transaction();
 
     try {
-      // 6. Créer l'employé dans la transaction
-      const employee = await Employee.create(
-        {
-          firstName,
-          lastName,
-          email,
-          password: temporaryPassword, // Le mot de passe sera hashé dans le hook beforeCreate
-          position,
-          department,
-          salary,
-          company_id: companyId,
-          status: "active",
-        },
-        { transaction }
-      );
+      // 6. Préparer les données de l'employé
+      const employeeData = {
+        firstName,
+        lastName,
+        email,
+        password: temporaryPassword,
+        position,
+        department,
+        salary: parseFloat(salary), // ✅ S'assurer que c'est un nombre
+        company_id: companyId,
+        status: "active",
+      };
 
-      // 7. Envoyer l'email de bienvenue avec les infos de connexion
+      // 7. Créer l'employé dans la transaction
+      const employee = await Employee.create(employeeData, { transaction });
+
+      // 8. Envoyer l'email de bienvenue avec les infos de connexion
       try {
         await sendWelcomeEmail({
           to: email,
@@ -94,10 +112,10 @@ export const createEmployee = async (req, res) => {
         });
       }
 
-      // 8. Valider la transaction si tout s'est bien passé
+      // 9. Valider la transaction si tout s'est bien passé
       await transaction.commit();
 
-      // 9. Journaliser l'action
+      // 10. Journaliser l'action
       // await createLog({
       //   action: 'EMPLOYEE_CREATED',
       //   description: `Nouvel employé créé: ${firstName} ${lastName}`,
@@ -105,14 +123,14 @@ export const createEmployee = async (req, res) => {
       //   companyId
       // });
 
-      // 10. Retourner la réponse (sans le mot de passe)
-      const employeeData = employee.toJSON();
-      delete employeeData.password;
+      // 11. Retourner la réponse (sans le mot de passe)
+      const employeeData_response = employee.toJSON();
+      delete employeeData_response.password;
 
       return res.status(201).json({
         success: true,
         message: "Employé créé avec succès",
-        data: employeeData,
+        data: employeeData_response,
       });
     } catch (error) {
       // Rollback en cas d'erreur pendant la transaction
@@ -186,7 +204,7 @@ export const getCompanyEmployees = async (req, res) => {
       ];
     }
 
-    // 4. Exécuter la requête avec pagination et tri
+    // 3. Exécuter la requête avec pagination et tri
     const { count, rows } = await Employee.findAndCountAll({
       where: whereClause,
       attributes: {
@@ -197,19 +215,11 @@ export const getCompanyEmployees = async (req, res) => {
       offset: parseInt(offset),
     });
 
-    // 5. Formater la réponse
+    // 4. Formater la réponse
     const totalPages = Math.ceil(count / limit);
     const currentPage = parseInt(page);
 
-    // 6. Journaliser l'action
-    // await createLog({
-    //   action: 'EMPLOYEES_LISTED',
-    //   description: `Liste des employés consultée - Page ${page}`,
-    //   userId: req.user.id,
-    //   companyId
-    // });
-
-    // 7. Retourner la réponse
+    // 5. Retourner la réponse
     res.status(200).json({
       success: true,
       data: rows,
