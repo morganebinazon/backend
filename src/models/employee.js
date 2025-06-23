@@ -49,8 +49,13 @@ const Employee = sequelize.define(
       defaultValue: DataTypes.NOW,
     },
     salary: {
-      type: DataTypes.DECIMAL(10, 2),
+      type: DataTypes.DECIMAL(15, 2), // ✅ Changé de (10, 2) à (15, 2)
       allowNull: false,
+      // ✅ Ajout d'une validation pour éviter les valeurs négatives
+      validate: {
+        min: 0,
+        max: 9999999999999.99, // 13 chiffres avant la virgule + 2 après
+      },
     },
     status: {
       type: DataTypes.ENUM("active", "on_leave", "terminated"),
